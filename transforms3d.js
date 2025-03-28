@@ -23,7 +23,7 @@ class Transforms3D {
     }
 
     setScale(scale) {
-        vec3.set(this.scale, scale.x, scale.y, scale.z);
+        this.scale = scale;
         this.updateMatrix();
     }
 
