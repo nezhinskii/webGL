@@ -35,8 +35,6 @@ async function main() {
     const pointLight1 = new Light("point", [0, 200, 200], null, [1.0, 1.0, 1.0], 1.0, 0.0);
     const spotLight1 = new Light("spot", [0, 0, 150], [0, 0, -1], [1.0, 0.5, 0.5], 1.0, Math.PI / 8);
 
-    sceneObject.addLight(pointLight1);
-    // sceneObject.addLight(spotLight1);
 
     function animate() {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -45,7 +43,7 @@ async function main() {
         sceneObject.model.rotate([1.0, 1.0, 0.0], 0.01)
         gl.useProgram(shaderProgram.program);
 
-        sceneObject.render(shaderProgram, camera);
+        sceneObject.render(shaderProgram, camera, [pointLight1]);
 
         requestAnimationFrame(animate);
     }

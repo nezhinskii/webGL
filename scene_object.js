@@ -8,17 +8,12 @@ class SceneObject {
         this.gl = gl;
         this.material = new Material(gl, texturePath, bumpPath);
         this.model = null;
-        this.lights = [];
     }
 
     static async create(gl, objPath, texturePath, bumpPath = null) {
         const obj = new SceneObject(gl, objPath, texturePath, bumpPath);
         await obj.loadOBJ(objPath); 
         return obj;
-    }
-
-    addLight(light) {
-        this.lights.push(light);
     }
 
     async loadOBJ(objPath) {
@@ -34,7 +29,7 @@ class SceneObject {
         this.model = new Model(this.gl, vertices, normals, texCoords, indices, this.material);
     }
 
-    render(shaderProgram, camera) {
+    render(shaderProgram, camera, lights) {
         if (this.model) {
             const modelMatrix = this.model.getMatrix();
             const viewMatrix = camera.getViewMatrix();
@@ -48,16 +43,16 @@ class SceneObject {
             this.gl.uniformMatrix4fv(shaderProgram.uniformLocations.projectionMatrix, false, projectionMatrix);
             this.gl.uniformMatrix3fv(shaderProgram.uniformLocations.normalMatrix, false, normalMatrix);
             this.gl.uniform3fv(shaderProgram.uniformLocations.cameraPosition, camera.position);
-            this.bindLights(shaderProgram, viewMatrix);
+            this.bindLights(shaderProgram, lights);
             this.model.render(shaderProgram);
         }
     }
 
-    bindLights(shaderProgram) {
+    bindLights(shaderProgram, lights) {
         const gl = this.gl;
         const maxLights = 10;
 
-        const numLights = Math.min(this.lights.length, maxLights);
+        const numLights = Math.min(lights.length, maxLights);
         gl.uniform1i(shaderProgram.uniformLocations.numLights, numLights);
 
         const lightTypes = new Int32Array(maxLights);
@@ -69,7 +64,7 @@ class SceneObject {
         const lightAttenuations = new Float32Array(maxLights);
 
         for (let i = 0; i < numLights; i++) {
-            const light = this.lights[i];
+            const light = lights[i];
 
             lightTypes[i] = light.type === "point" ? 0 : 1;
 
