@@ -72,7 +72,6 @@ async function main() {
             if (pitch < -Math.PI / 2 + 0.01) pitch = -Math.PI / 2 + 0.01;
 
             mat4.identity(ship.model.rotationMatrix);
-            mat4.identity(ship.model.baseRotationMatrix);
             ship.model.rotate(vec3.fromValues(0, 1, 0), yaw);
             ship.model.rotate(vec3.fromValues(1, 0, 0), pitch);
 
@@ -116,11 +115,11 @@ async function main() {
         if (shipTilt > Math.PI / 4) shipTilt = Math.PI / 4;
         if (shipTilt < -Math.PI / 4) shipTilt = -Math.PI / 4;
 
-        ship.model.applyTilt(shipTilt);
+        ship.model.setTilt(shipTilt);
 
         const offset = vec3.create();
         vec3.scaleAndAdd(offset, ship.model.position, ship.model.getFront(), 40);
-        vec3.scaleAndAdd(offset, offset, ship.model.getUp(), 15);
+        vec3.scaleAndAdd(offset, offset, vec3.fromValues(0.0, 1.0, 0.0), 15);
         camera.move(offset);
         const viewPoint = vec3.clone(ship.model.position);
         vec3.scaleAndAdd(viewPoint, viewPoint, ship.model.getUp(), 7);
