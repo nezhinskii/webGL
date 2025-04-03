@@ -4,9 +4,15 @@ class Transforms3D {
     constructor() {
         this.position = vec3.fromValues(0, 0, 0);
         this.scale = vec3.fromValues(1, 1, 1);
+        this.initialRotationMatrix = mat4.create();
         this.rotationMatrix = mat4.create();
         this.tiltMatrix = mat4.create();
         this.matrix = mat4.create();
+        this.updateMatrix();
+    }
+
+    setInitialRotation(axis, angle) {
+        mat4.fromRotation(this.initialRotationMatrix, angle, axis);
         this.updateMatrix();
     }
 
@@ -36,6 +42,7 @@ class Transforms3D {
     updateMatrix() {
         mat4.identity(this.matrix);
         mat4.translate(this.matrix, this.matrix, this.position);
+        mat4.multiply(this.matrix, this.matrix, this.initialRotationMatrix);
         mat4.multiply(this.matrix, this.matrix, this.rotationMatrix);
         mat4.multiply(this.matrix, this.matrix, this.tiltMatrix);
         mat4.scale(this.matrix, this.matrix, this.scale);
