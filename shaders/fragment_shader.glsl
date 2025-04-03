@@ -63,36 +63,10 @@ void main() {
         if (uLightTypes[i] == 1) {
             float theta = dot(lightDir, normalize(-uLightDirections[i]));
             float cutoff = cos(uLightCutoffAngles[i]);
-            if (theta > cutoff) {
-                lightFactor = 1.0;
-            } else {
-                lightFactor = 0.0;
-            }
+            float innerCutoff = cutoff * 1.05;
+            float outerCutoff = cutoff * 0.95;
+            lightFactor = smoothstep(outerCutoff, innerCutoff, theta);
         }
-
-        // vec3 uLightPosition = vec3(100.0, 100.0, 200.0);
-        // vec3 uLightColor = vec3(1.0, 1.0, 1.0);
-        // vec3 uCameraPosition = vec3(0.0, 0.0, 200.0);
-        // float uAmbientStrength = 0.3;
-        // float uSpecularStrength = 0.5;
-        // float uShininess = 32.0;
-
-        // vec3 viewDir = normalize(uCameraPosition - vPosition);
-
-        // // vec3 ambient = uAmbientStrength * uLightColor;
-        // // float diff = max(dot(newNormal, lightDir), 0.0);
-        // // vec3 diffuse = diff * uLightColor;
-        // float diff = max(dot(newNormal, lightDir), 0.0);
-        // vec3 diffuseContrib = diff * uLightColor;
-        // // vec3 reflectDir = normalize(reflect(-lightDir, newNormal));
-        // // float spec = pow(max(dot(viewDir, reflectDir), 0.0), uShininess);
-        // // vec3 specular = uSpecularStrength * spec * uLightColor;
-        // vec3 reflectDir = normalize(reflect(-lightDir, newNormal));
-        // float spec = pow(max(dot(viewDir, reflectDir), 0.0), uShininess);
-        // vec3 specularContrib = uSpecularStrength * spec * uLightColor;
-
-
-
 
         float diff = max(dot(newNormal, lightDir), 0.0);
         vec3 diffuseContrib = diff * uLightColors[i] * uLightIntensities[i] * attenuation * lightFactor;
@@ -103,10 +77,6 @@ void main() {
 
         diffuse += diffuseContrib;
         specular += specularContrib;
-
-        // vec3 result = (ambient + diffuse) * textureColor.rgb + specular;
-        // result = vec3(attenuation, lightFactor, lightFactor);
-        // fragColor = vec4(result, textureColor.a);
     }
 
     vec3 result = (ambient + diffuse) * textureColor.rgb + specular;
