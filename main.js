@@ -36,14 +36,16 @@ async function main() {
     const shipModelPath = '/models/ship/StarShip.obj';
     const shipTexturePath = '/models/ship/Material.001_Base_color.jpg';
     const ship = await SceneObject.create(gl, shipModelPath, shipTexturePath);
-    ship.model.rotate(vec3.fromValues(0.0, 1.0, 0.0), Math.PI);
+    ship.model.setInitialRotation(vec3.fromValues(0.0, 1.0, 0.0), Math.PI);
     ship.model.move(vec3.fromValues(0, 0, 250));
 
     const pointLight1 = new Light("point", [0, 200, 200], null, [1.0, 1.0, 1.0], 1.0, 0.0);
-    const spotLight1 = new Light("spot", [0, 0, 150], [0, 0, -1], [1.0, 0.5, 0.5], 1.0, Math.PI / 8);
+    const headlight = new Light("spot", [0, 0, 150], [0, 0, -1], [0.0, 1.0, 1.0], 1.0, Math.PI / 8, 0);
+
+    const allLight = [headlight, pointLight1];
 
     let isFocused = false;
-    let yaw = Math.PI;
+    let yaw = 0;
     let pitch = 0;
     const speed = 1;
     const sensitivity = 0.0001;
@@ -67,17 +69,16 @@ async function main() {
             const yoffset = event.movementY * sensitivity;
 
             yaw -= xoffset;
-            pitch += yoffset;
-            if (pitch > Math.PI / 2 - 0.01) pitch = Math.PI / 2 - 0.01;
-            if (pitch < -Math.PI / 2 + 0.01) pitch = -Math.PI / 2 + 0.01;
+            pitch -= yoffset;
+            pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
 
             mat4.identity(ship.model.rotationMatrix);
             ship.model.rotate(vec3.fromValues(0, 1, 0), yaw);
             ship.model.rotate(vec3.fromValues(1, 0, 0), pitch);
 
-            if (Math.abs(event.movementX) > 5) {
+            if (Math.abs(event.movementX) > 7) {
                 lastTiltTime = performance.now();
-                shipTilt += event.movementX > 0 ? Math.PI / 200 : -Math.PI / 200;
+                shipTilt -= event.movementX > 0 ? Math.PI / 200 : -Math.PI / 200;
             }
         }
     });
@@ -87,17 +88,17 @@ async function main() {
         const front = ship.model.getFront();
         const right = ship.model.getRight();
 
-        if (key === 'w') vec3.scaleAndAdd(ship.model.position, ship.model.position, front, -speed);
-        if (key === 's') vec3.scaleAndAdd(ship.model.position, ship.model.position, front, speed);
-        if (key === 'a') {
-            vec3.scaleAndAdd(ship.model.position, ship.model.position, right, speed);
-            lastTiltTime = performance.now();
-            shipTilt -= Math.PI / 50;
-        }
-        if (key === 'd') {
+        if (key === 'w' || key === 'ц') vec3.scaleAndAdd(ship.model.position, ship.model.position, front, speed);
+        if (key === 's' || key === 'ы') vec3.scaleAndAdd(ship.model.position, ship.model.position, front, -speed);
+        if (key === 'a' || key === 'ф') {
             vec3.scaleAndAdd(ship.model.position, ship.model.position, right, -speed);
             lastTiltTime = performance.now();
             shipTilt += Math.PI / 50;
+        }
+        if (key === 'd' || key === 'в') {
+            vec3.scaleAndAdd(ship.model.position, ship.model.position, right, speed);
+            lastTiltTime = performance.now();
+            shipTilt -= Math.PI / 50;
         }
         ship.model.updateMatrix();
     });
@@ -117,17 +118,24 @@ async function main() {
 
         ship.model.setTilt(shipTilt);
 
+        // камера относительно корабля
         const offset = vec3.create();
-        vec3.scaleAndAdd(offset, ship.model.position, ship.model.getFront(), 40);
+        vec3.scaleAndAdd(offset, ship.model.position, ship.model.getFront(), -40);
         vec3.scaleAndAdd(offset, offset, vec3.fromValues(0.0, 1.0, 0.0), 15);
         camera.move(offset);
         const viewPoint = vec3.clone(ship.model.position);
         vec3.scaleAndAdd(viewPoint, viewPoint, ship.model.getUp(), 7);
         camera.target = vec3.clone(viewPoint);
 
+        // фара на корабле
+        const headlightOffset = vec3.create();
+        vec3.scaleAndAdd(headlightOffset, ship.model.position, ship.model.getFront(), 1);
+        headlight.move(headlightOffset); 
+        headlight.initialDirection = vec3.clone(ship.model.getFront());
+
         moon.model.rotate(vec3.fromValues(0.0, 1.0, 0.0), 0.0001);
-        moon.render(shaderProgram, camera, [pointLight1]);
-        ship.render(shaderProgram, camera, [pointLight1]);
+        moon.render(shaderProgram, camera, allLight);
+        ship.render(shaderProgram, camera, allLight);
 
         requestAnimationFrame(animate);
     }
