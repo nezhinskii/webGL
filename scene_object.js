@@ -67,7 +67,7 @@ class SceneObject {
         this.model = new Model(this.gl, vertices, normals, texCoords, indices, this.material);
     }
 
-    render(shaderProgram, camera, lights) {
+    render(shaderProgram, camera, lights, ambientStrengthOverride) {
         if (this.model) {
             const modelMatrix = this.model.getMatrix();
             const viewMatrix = camera.getViewMatrix();
@@ -82,6 +82,7 @@ class SceneObject {
             this.gl.uniformMatrix3fv(shaderProgram.uniformLocations.normalMatrix, false, normalMatrix);
             this.gl.uniform3fv(shaderProgram.uniformLocations.cameraPosition, camera.position);
             this.bindLights(shaderProgram, lights);
+            this.material.bindTextures(shaderProgram, ambientStrengthOverride);
             this.model.render(shaderProgram);
         }
     }

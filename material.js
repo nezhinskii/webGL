@@ -31,7 +31,7 @@ class Material {
         return texture;
     }
 
-    bindTextures(shaderProgram) {
+    bindTextures(shaderProgram, ambientStrengthOverride) {
         const gl = this.gl;
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -48,8 +48,10 @@ class Material {
                 gl.uniform2fv(shaderProgram.uniformLocations.bumpTextureSize, this.bumpTextureSize);
             }
         }
-
-        gl.uniform1f(shaderProgram.uniformLocations.ambientStrength, this.ambientStrength);
+        gl.uniform1f(
+            shaderProgram.uniformLocations.ambientStrength,
+            ambientStrengthOverride !== undefined ? ambientStrengthOverride : this.ambientStrength
+        );
         gl.uniform1f(shaderProgram.uniformLocations.specularStrength, this.specularStrength);
         gl.uniform1f(shaderProgram.uniformLocations.shininess, this.shininess);
     }

@@ -34,8 +34,7 @@ class Transforms3D {
     }
 
     setTilt(tiltAngle) {
-        const worldZAxis = this.getFront();
-        mat4.fromRotation(this.tiltMatrix, tiltAngle, worldZAxis);
+        mat4.fromRotation(this.tiltMatrix, tiltAngle, vec3.fromValues(0, 0, 11));
         this.updateMatrix();
     }
 

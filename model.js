@@ -1,14 +1,13 @@
 import {Transforms3D} from './transforms3d.js';
 
 class Model extends Transforms3D {
-    constructor(gl, vertices, normals, texCoords, indices, material) {
+    constructor(gl, vertices, normals, texCoords, indices) {
         super();
         this.gl = gl;
         this.vertices = vertices;
         this.normals = normals;
         this.texCoords = texCoords;
         this.indices = indices;
-        this.material = material;
 
         this.vertexBuffer = this.createBuffer(vertices, gl.ARRAY_BUFFER);
         this.normalBuffer = this.createBuffer(normals, gl.ARRAY_BUFFER);
@@ -41,8 +40,6 @@ class Model extends Transforms3D {
             gl.enableVertexAttribArray(shaderProgram.attribLocations.texCoordLocation);
             gl.vertexAttribPointer(shaderProgram.attribLocations.texCoordLocation, 2, gl.FLOAT, false, 0, 0);
         }
-
-        this.material.bindTextures(shaderProgram);
 
         if (this.indices) {
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);

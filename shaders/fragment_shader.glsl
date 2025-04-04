@@ -63,9 +63,9 @@ void main() {
         if (uLightTypes[i] == 1) {
             float theta = dot(lightDir, normalize(-uLightDirections[i]));
             float cutoff = cos(uLightCutoffAngles[i]);
-            float innerCutoff = cutoff * 1.05;
-            float outerCutoff = cutoff * 0.95;
-            lightFactor = smoothstep(outerCutoff, innerCutoff, theta);
+            float innerCutoff = cutoff * 0.99;
+            float outerCutoff = cutoff * 1.01;
+            lightFactor = smoothstep(innerCutoff, outerCutoff, theta);
         }
 
         float diff = max(dot(newNormal, lightDir), 0.0);
