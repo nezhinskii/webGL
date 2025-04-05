@@ -1,13 +1,14 @@
 import { mat4, vec3 } from './lib/gl-matrix-min.js';
 
 class Transforms3D {
-    constructor() {
+    constructor(boundingBox = null) {
         this.position = vec3.fromValues(0, 0, 0);
         this.scale = vec3.fromValues(1, 1, 1);
         this.initialRotationMatrix = mat4.create();
         this.rotationMatrix = mat4.create();
         this.tiltMatrix = mat4.create();
         this.matrix = mat4.create();
+        if(boundingBox) this.boundingBox = boundingBox;
         this.updateMatrix();
     }
 
@@ -18,6 +19,7 @@ class Transforms3D {
 
     move(vector) {
         this.position = vector;
+        if(this.boundingBox) this.boundingBox.move(vector);
         this.updateMatrix();
     }
 
@@ -30,6 +32,7 @@ class Transforms3D {
 
     setScale(scale) {
         this.scale = scale;
+        if(this.boundingBox) this.boundingBox.setScale(scale);
         this.updateMatrix();
     }
 

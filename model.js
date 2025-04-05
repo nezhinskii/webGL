@@ -1,8 +1,8 @@
 import {Transforms3D} from './transforms3d.js';
 
 class Model extends Transforms3D {
-    constructor(gl, vertices, normals, texCoords, indices) {
-        super();
+    constructor(gl, vertices, normals, texCoords, indices, boundingBox = null) {
+        super(boundingBox);
         this.gl = gl;
         this.vertices = vertices;
         this.normals = normals;

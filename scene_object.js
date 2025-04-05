@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { Model } from './model.js';
 import { Material } from './material.js';
 import { mat3, mat4 } from './lib/gl-matrix-min.js';
+import { BoundingBox } from './bounding_box.js';
 
 class SceneObject {
     constructor(gl, objPath, texturePath, bumpPath, material) {
@@ -11,47 +12,11 @@ class SceneObject {
         this.model = null;
     }
 
-    static async create(gl, modelPath, texturePath, bumpPath = null, material = null) {
+    static async create(gl, modelPath, texturePath, bumpPath = null, withCollision = false, material = null) {
         const obj = new SceneObject(gl, modelPath, texturePath, bumpPath, material);
-        if (modelPath.endsWith('.obj')) {
-            await obj.loadOBJ(modelPath);
-        } else if (modelPath.endsWith('.gltf')) {
-            await obj.loadGLTF(modelPath);
-        }
+        if(withCollision) await obj.loadOBJWithCollision(modelPath); 
+            else await obj.loadOBJ(modelPath); 
         return obj;
-    }
-
-    async loadGLTF(gltfPath) {
-        const loader = new GLTFLoader();
-        const gltf = await loader.loadAsync(gltfPath);
-
-        let mesh = null;
-        const traverse = (object) => {
-            if (object.isMesh) {
-                mesh = object;
-                return;
-            }
-            if (object.children) {
-                for (const child of object.children) {
-                    traverse(child);
-                    if (mesh) break;
-                }
-            }
-        };
-        traverse(gltf.scene);
-
-        if (!mesh) {
-            throw new Error('No mesh found in the .gltf file');
-        }
-
-        const geometry = mesh.geometry;
-
-        const vertices = new Float32Array(geometry.attributes.position.array);
-        const normals = new Float32Array(geometry.attributes.normal?.array || []);
-        const texCoords = new Float32Array(geometry.attributes.uv?.array || []);
-        const indices = geometry.index ? new Uint16Array(geometry.index.array) : null;
-
-        this.model = new Model(this.gl, vertices, normals, texCoords, indices, this.material);
     }
 
     async loadOBJ(objPath) {
@@ -65,6 +30,39 @@ class SceneObject {
         const indices = mesh.index ? new Uint16Array(mesh.index.array) : null;
 
         this.model = new Model(this.gl, vertices, normals, texCoords, indices, this.material);
+    }
+
+    async loadOBJWithCollision(objPath) {
+        const loader = new OBJLoader();
+        const obj = await loader.loadAsync(objPath);
+        const mesh = obj.children[0].geometry;
+
+        const vertices = new Float32Array(mesh.attributes.position.array);
+        const normals = new Float32Array(mesh.attributes.normal?.array || []);
+        const texCoords = new Float32Array(mesh.attributes.uv?.array || []);
+        const indices = mesh.index ? new Uint16Array(mesh.index.array) : null;
+
+        let min = [Infinity, Infinity, Infinity];
+        let max = [-Infinity, -Infinity, -Infinity];
+        
+        
+        for (let i = 0; i < vertices.length; i += 3) {
+            const x = vertices[i];
+            const y = vertices[i+1];
+            const z = vertices[i+2];
+            
+            min[0] = Math.min(min[0], x);
+            min[1] = Math.min(min[1], y);
+            min[2] = Math.min(min[2], z);
+            
+            max[0] = Math.max(max[0], x);
+            max[1] = Math.max(max[1], y);
+            max[2] = Math.max(max[2], z);
+        }
+
+        const boundingBox = new BoundingBox(min, max);
+
+        this.model = new Model(this.gl, vertices, normals, texCoords, indices, boundingBox);
     }
 
     render(shaderProgram, camera, lights, ambientStrengthOverride) {

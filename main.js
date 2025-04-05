@@ -11,7 +11,7 @@ const CAMERA_FOV = Math.PI / 4;
 const CAMERA_NEAR = 0.1;
 const CAMERA_FAR = 100000.0;
 const SPEED = 1;
-const SENSITIVITY = 0.0001;
+const SENSITIVITY = 0.001;
 const MAX_TILT = Math.PI / 4;
 const TILT_DAMPING = 0.9;
 const TILT_THRESHOLD = 200;
@@ -45,6 +45,7 @@ async function initSceneObjects(gl) {
         '/models/moon/moon.obj',
         '/models/moon/MoonMap2_2500x1250.jpg',
         '/models/moon/moon-normal.jpg',
+        true,
         new Material(gl, '/models/moon/MoonMap2_2500x1250.jpg', '/models/moon/moon-normal.jpg', 0.001, 0.0)
     );
     moon.model.setScale(vec3.fromValues(50, 50, 50));
@@ -53,7 +54,9 @@ async function initSceneObjects(gl) {
     const ship = await SceneObject.create(
         gl,
         '/models/ship/StarShip.obj',
-        '/models/ship/Material.001_Base_color.jpg'
+        '/models/ship/Material.001_Base_color.jpg',
+        null,
+        true,
     );
     ship.model.rotate(vec3.fromValues(0, 1, 0), Math.PI);
     ship.model.move(vec3.fromValues(-100, 150, 300));
@@ -61,7 +64,9 @@ async function initSceneObjects(gl) {
     const bigShip = await SceneObject.create(
         gl,
         '/models/big_ship/big_ship.obj',
-        '/models/big_ship/Spaceship 04_BaseColor.jpg'
+        '/models/big_ship/Spaceship 04_BaseColor.jpg',
+        null,
+        true,
     );
     bigShip.model.move(vec3.fromValues(-100, 0, -300));
     bigShip.model.setScale(vec3.fromValues(100, 100, 100));
@@ -69,18 +74,22 @@ async function initSceneObjects(gl) {
     const searchlight1 = await SceneObject.create(
         gl,
         '/models/cone/sci_fi_searchlight.obj',
-        '/models/cone/sci_fi_searchligh_BaseColor.png'
+        '/models/cone/sci_fi_searchligh_BaseColor.png',
+        null,
+        true,
     );
-    searchlight1.model.move(vec3.fromValues(0, 40, 0));
+    searchlight1.model.move(vec3.fromValues(0, 100, 0));
     searchlight1.model.rotate(vec3.fromValues(0, 1, 0), Math.PI);
     searchlight1.model.setScale(vec3.fromValues(7, 7, 7));
 
     const searchlight2 = await SceneObject.create(
         gl,
         '/models/cone/sci_fi_searchlight.obj',
-        '/models/cone/sci_fi_searchligh_BaseColor.png'
+        '/models/cone/sci_fi_searchligh_BaseColor.png',
+        null,
+        true,
     );
-    searchlight2.model.move(vec3.fromValues(-200, 40, 0));
+    searchlight2.model.move(vec3.fromValues(-200, 100, 0));
     searchlight2.model.setScale(vec3.fromValues(7, 7, 7));
 
     const rock1 = await SceneObject.create(
@@ -88,6 +97,7 @@ async function initSceneObjects(gl) {
         '/models/rock/rock_by_dommk.obj',
         '/models/rock/rock_Base_Color.png',
         '/models/rock/rock_Height.png',
+        true,
         new Material(gl, '/models/rock/rock_Base_Color.png', '/models/rock/rock_Height.png', 0.001, 0.0)
     );
     rock1.model.move(vec3.fromValues(-400, 100, -100));
@@ -98,12 +108,13 @@ async function initSceneObjects(gl) {
         '/models/rock/rock_by_dommk.obj',
         '/models/rock/rock_Base_Color.png',
         '/models/rock/rock_Height.png',
+        true,
         new Material(gl, '/models/rock/rock_Base_Color.png', '/models/rock/rock_Height.png', 0.001, 0.0)
     );
     rock2.model.move(vec3.fromValues(100, 200, -300));
     rock2.model.setScale(vec3.fromValues(1, 1, 1));
 
-    const allModels = [
+    const allObjects = [
         moon,
         ship,
         bigShip,
@@ -113,15 +124,15 @@ async function initSceneObjects(gl) {
         rock2
     ]
 
-    return { moon, ship, allModels, rock1, rock2 };
+    return { moon, ship, allObjects, rock1, rock2 };
 }
 
 function initLights() {
     const pointLight = new Light("point", [0, 200, 200], null, [1.0, 1.0, 1.0], 1.0, 0.0);
     const headlight = new Light("spot", [0, 0, 150], [0, 0, -1], [0.0, 1.0, 1.0], 1.0, Math.PI / 12, 0.005);
     const otherSpotLights = [
-        new Light("spot", [-170, 150, 0], [0, -1, 0], [1.0, 0.5, 0.0], 1.0, Math.PI / 8, 0.001),
-        new Light("spot", [-30, 150, 0], [0, -1, 0], [1.0, 0.5, 0.0], 1.0, Math.PI / 8, 0.001)
+        new Light("spot", [-170, 170, 0], [0, -1, 0], [1.0, 0.5, 0.0], 1.0, Math.PI / 6, 0.0005),
+        new Light("spot", [-30, 170, 0], [0, -1, 0], [1.0, 0.5, 0.0], 1.0, Math.PI / 6, 0.0005)
     ];
     return { headlight, pointLight, otherSpotLights, allLights: [headlight, pointLight, ...otherSpotLights] };
 }
@@ -132,24 +143,39 @@ function updateShipOrientation(ship, yaw, pitch) {
     ship.model.rotate(vec3.fromValues(1, 0, 0), pitch);
 }
 
-function updateShipMovement(ship, keys, shipTilt, currentTime) {
+function checkCollisions(object, allObjects) {
+    for (const other of allObjects) {
+        if (object !== other && object.model.boundingBox.intersects(other.model.boundingBox)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function updateShipMovement(ship, keys, shipTilt, allObjects) {
     const front = ship.model.getFront();
     const right = ship.model.getRight();
     let tiltChanged = false;
+    let newPosition = vec3.clone(ship.model.position);
 
-    if (keys.KeyW) vec3.scaleAndAdd(ship.model.position, ship.model.position, front, -SPEED);
-    if (keys.KeyS) vec3.scaleAndAdd(ship.model.position, ship.model.position, front, SPEED);
+    if (keys.KeyW) vec3.scaleAndAdd(newPosition, newPosition, front, -SPEED);
+    if (keys.KeyS) vec3.scaleAndAdd(newPosition, newPosition, front, SPEED);
     if (keys.KeyA) {
-        vec3.scaleAndAdd(ship.model.position, ship.model.position, right, SPEED);
+        vec3.scaleAndAdd(newPosition, newPosition, right, SPEED);
         shipTilt -= TILT_KEY_FACTOR;
         tiltChanged = true;
     }
     if (keys.KeyD) {
-        vec3.scaleAndAdd(ship.model.position, ship.model.position, right, -SPEED);
+        vec3.scaleAndAdd(newPosition, newPosition, right, -SPEED);
         shipTilt += TILT_KEY_FACTOR;
         tiltChanged = true;
     }
 
+    const oldPosition = vec3.clone(ship.model.position);
+    ship.model.move(newPosition);
+    if (checkCollisions(ship, allObjects)) {
+        ship.model.move(oldPosition);
+    }
     return { shipTilt, tiltChanged };
 }
 
@@ -226,7 +252,7 @@ async function main() {
     const gl = initWebGL(canvas);
     const shaderProgram = await createProgram(gl);
     const camera = initCamera(gl);
-    const { moon, ship, allModels, rock1, rock2 } = await initSceneObjects(gl);
+    const { moon, ship, allObjects, rock1, rock2 } = await initSceneObjects(gl);
     const { headlight, pointLight, otherSpotLights, allLights } = initLights();
 
     let yaw = Math.PI;
@@ -260,7 +286,7 @@ async function main() {
     };
 
     setupInputHandlers(canvas, keys, updateOrientation, updateTilt, toggleLights);
-
+    
     function animate() {
         gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -268,7 +294,7 @@ async function main() {
         gl.useProgram(shaderProgram.program);
 
         const currentTime = performance.now();
-        const { shipTilt: newTilt, tiltChanged } = updateShipMovement(ship, keys, shipTilt, currentTime);
+        const { shipTilt: newTilt, tiltChanged } = updateShipMovement(ship, keys, shipTilt, allObjects);
         shipTilt = newTilt;
         if (tiltChanged) lastTiltTime = currentTime;
         shipTilt = applyTilt(ship, shipTilt, currentTime, lastTiltTime, keys);
@@ -282,16 +308,22 @@ async function main() {
         });
 
         moon.model.rotate(vec3.fromValues(0, 1, 0), 0.00005);
-        vec3.scaleAndAdd(rock1.model.position, rock1.model.position, vec3.fromValues(1, 0.5, -0.2), 0.05);
+
+        let rock1Pos = vec3.clone(rock1.model.position);
+        vec3.scaleAndAdd(rock1Pos, rock1Pos, vec3.fromValues(1, 0.5, -0.2), 0.05);
+        rock1.model.move(rock1Pos);
         rock1.model.rotate(vec3.fromValues(0, 1, 1.5), 0.001);
 
-        vec3.scaleAndAdd(rock2.model.position, rock2.model.position, vec3.fromValues(-0.5, 0.3, -0.1), 0.05);
+        let rock2Pos = vec3.clone(rock2.model.position);
+        vec3.scaleAndAdd(rock2Pos, rock2Pos, vec3.fromValues(-0.5, 0.3, -0.1), 0.05);
+        rock2.model.move(rock2Pos);
         rock2.model.rotate(vec3.fromValues(0.2, 1, 0), 0.001);
 
-        allModels.forEach((m) => 
+        allObjects.forEach((m) => 
             m.render(shaderProgram, camera, activeLights, lightingState.ambient ? undefined : 0.0)
         )
-
+        console.log(checkCollisions(ship, allObjects));
+        // console.log(ship.model.boundingBox);
         requestAnimationFrame(animate);
     }
 
@@ -299,3 +331,82 @@ async function main() {
 }
 
 main();
+
+// import { initWebGL, createProgram } from './webgl_utils.js';
+// import { SceneObject } from './scene_object.js';
+// import { Camera } from './camera.js';
+// import { Light } from './light.js';
+// import { vec3 } from 'gl-matrix';
+
+// async function main() {
+//     const canvas = document.createElement('canvas');
+//     canvas.width = window.innerWidth;
+//     canvas.height = window.innerHeight;
+//     document.body.appendChild(canvas);
+
+//     const gl = initWebGL(canvas);
+
+//     const shaderProgram = await createProgram(gl);
+
+//     const camera = new Camera(
+//         gl,
+//         vec3.fromValues(0, 0, 300),
+//         vec3.fromValues(0, 0, 0),
+//         vec3.fromValues(0, 1, 0),
+//         Math.PI / 4,
+//         canvas.width / canvas.height,
+//         0.1,
+//         1000.0
+//     );
+
+//     const modelPath = '/models/moon/moon.obj';
+//     const texturePath = '/models/moon/orange_color.png';
+//     const bumpPath = '/models/moon/bump_orange.jpg';
+//     // const texturePath = '/models/moon/MoonMap2_2500x1250.jpg';
+//     // const bumpPath = '/models/moon/moon-normal.jpg';
+//     const sceneObject1 = await SceneObject.create(gl, modelPath, texturePath, bumpPath, true);
+//     const sceneObject2 = await SceneObject.create(gl, modelPath, texturePath, bumpPath, true);
+//     let collidableObjects = [];
+//     collidableObjects.push(sceneObject2);
+
+//     const pointLight1 = new Light("point", [0, 200, 200], null, [1.0, 1.0, 1.0], 1.0, 0.0);
+//     const spotLight1 = new Light("spot", [0, 0, 150], [0, 0, -1], [1.0, 0.5, 0.5], 1.0, Math.PI / 8);
+
+//     let xT = 0.0
+//     sceneObject2.model.setScale([0.2, 0.2, 0.2])
+
+//     function animate() {
+//         gl.clearColor(0.0, 0.0, 0.0, 1.0);
+//         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+//         gl.enable(gl.DEPTH_TEST);
+//         sceneObject1.model.rotate([1.0, 1.0, 0.0], 0.01)
+//         sceneObject1.model.setScale([0.2, 0.2, 0.2])
+//         sceneObject1.model.move([xT, 0.0, 0.0])
+//         xT += 0.1
+//         sceneObject2.model.move([50.0, 0.0, 0.0])
+//         gl.useProgram(shaderProgram.program);
+
+//         sceneObject1.render(shaderProgram, camera, [pointLight1]);
+//         sceneObject2.render(shaderProgram, camera, [pointLight1]);
+//     }
+
+//     function checkCollisions(object) {
+//         for (const other of collidableObjects) {
+//             if (object !== other && object.model.boundingBox.intersects(other.model.boundingBox)) {
+//                 return true;
+//             }
+//         }
+//         return false;
+//     }
+
+//     function render() {
+//         animate();
+//         console.log(checkCollisions(sceneObject1));
+//         //console.log(collidableObjects);
+//         requestAnimationFrame(render);
+//     }
+
+//     render()
+// }
+
+// main();
