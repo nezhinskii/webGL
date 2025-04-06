@@ -40,36 +40,154 @@ function initCamera(gl) {
 }
 
 async function initSceneObjects(gl) {
-    const moon = await SceneObject.create(
+    const mars = await SceneObject.create(
         gl,
-        '/models/moon/moon.obj',
-        '/models/moon/MoonMap2_2500x1250.jpg',
-        '/models/moon/moon-normal.jpg',
-        true,
-        new Material(gl, '/models/moon/MoonMap2_2500x1250.jpg', '/models/moon/moon-normal.jpg', 0.001, 0.0)
+        '/models/mars/mars.obj',
+        '/models/mars/mars.jpg',
+        null,
+        true
     );
-    moon.model.setScale(vec3.fromValues(50, 50, 50));
-    moon.model.move(vec3.fromValues(0, 0, -10000));
+    mars.model.setScale(vec3.fromValues(5000, 5000, 5000));
+    mars.model.move(vec3.fromValues(0, -11000, -2000));
+
+    const ship = await SceneObject.create(
+        gl,
+        '/models/ship/StarShip.obj',
+        '/models/ship/Material.001_Base_color.jpg',
+        null,
+        true,
+    );
+    ship.model.rotate(vec3.fromValues(0, 1, 0), Math.PI);
+    ship.model.move(vec3.fromValues(-100, 150, 300));
+
+    const bigShip = await SceneObject.create(
+        gl,
+        '/models/big_ship/big_ship.obj',
+        '/models/big_ship/Spaceship 04_BaseColor.jpg',
+        null,
+        true,
+    );
+    bigShip.model.move(vec3.fromValues(-100, 8000, -20000));
+    bigShip.model.setScale(vec3.fromValues(400, 400, 400));
+
+    const station = await SceneObject.create(
+        gl,
+        '/models/station/spaceStation.obj',
+        '/models/station/station.jpg',
+        null,
+        true,
+    );
+    station.model.move(vec3.fromValues(400, 400, -800));
+    station.model.setScale(vec3.fromValues(100, 100, 100));
+    station.model.rotate(vec3.fromValues(0, 1, 0), Math.PI);
+
+    let rocks = []
+    for (let i = 0; i < 50; i++) {
+        const isRock = Math.random() > 0.2
+        const rock = isRock ?
+            await SceneObject.create(
+                gl,
+                '/models/rock/rock_by_dommk.obj',
+                '/models/rock/rock_Base_Color.png',
+                '/models/rock/rock_Height.png',
+                true,
+                new Material(gl, '/models/rock/rock_Base_Color.png', '/models/rock/rock_Height.png', 0.001, 0.0)
+            )
+            : await SceneObject.create(
+                gl,
+                '/models/trash/trash.obj',
+                '/models/trash/trash.jpg',
+                null,
+                true,
+            )
+        
+        const randX = Math.random() * 3000;
+        const randY = Math.random() * 2000;
+        const randZ = Math.random() * 3000;
+        const randScale = Math.random() + (isRock ? 1 : 20)
+        rock.model.move(vec3.fromValues(-1000 + randX, 1000 + randY, -1000 - randZ));
+        rock.model.setScale(vec3.fromValues(1 + randScale, 1 + randScale, 1 + randScale));
+        rocks.push(rock)
+    }
+
+    let trashs = []
+    for (let i = 0; i < 5; i++) {
+        const trash = await SceneObject.create(
+                gl,
+                '/models/trash/trash.obj',
+                '/models/trash/trash.jpg',
+                null,
+                true,
+            )
+        trash.model.move(vec3.fromValues(150 + i * 20, 250, -430));
+        trash.model.setScale(vec3.fromValues(10, 10, 10));
+        trashs.push(trash)
+    }
+
+    const sputnik = await SceneObject.create(
+        gl,
+        '/models/sputnik/sputnik.obj',
+        '/models/sputnik/sputnik.png',
+        null,
+        true,
+    );
+    sputnik.model.move(vec3.fromValues(-8000, 8000, -15000));
+    sputnik.model.setScale(vec3.fromValues(300, 300, 300));
+
+    const lamp1 = await SceneObject.create(
+        gl,
+        '/models/lamp/lamp.obj',
+        '/models/lamp/lamp.jpg',
+        null,
+        true,
+    );
+    lamp1.model.move(vec3.fromValues(280, 250, -430));
+    lamp1.model.setScale(vec3.fromValues(40, 40, 40));
+
+    const lamp2 = await SceneObject.create(
+        gl,
+        '/models/lamp/lamp.obj',
+        '/models/lamp/lamp.jpg',
+        null,
+        true,
+    );
+    lamp2.model.move(vec3.fromValues(150, 250, -430));
+    lamp2.model.setScale(vec3.fromValues(40, 40, 40));
+    lamp2.model.rotate(vec3.fromValues(0, 1, 0), Math.PI)
+
+    /*
+    const bullet = await SceneObject.create(
+        gl,
+        '/models/bullet/bullet.obj',
+        '/models/bullet/bullet.jpg',
+        null,
+        true,
+    );
+    bullet.model.move(vec3.fromValues(0, 150, 300));
+    */
 
     const allObjects = [
-        moon,
+        mars,
         ship,
         bigShip,
-        searchlight1,
-        searchlight2,
-        rock1,
-        rock2
+        station,
+        ...rocks,
+        lamp1,
+        lamp2,
+        ...trashs,
+        sputnik,
+        //bullet
     ]
 
-    return { moon, ship, allObjects, rock1, rock2 };
+    return { mars, ship, allObjects, rocks };
 }
 
 function initLights() {
     const pointLight = new Light("point", [0, 200, 200], null, [1.0, 1.0, 1.0], 1.0, 0.0);
     const headlight = new Light("spot", [0, 0, 150], [0, 0, -1], [0.0, 1.0, 1.0], 1.0, Math.PI / 12, 0.005);
     const otherSpotLights = [
-        new Light("spot", [-170, 170, 0], [0, -1, 0], [1.0, 0.5, 0.0], 1.0, Math.PI / 6, 0.0005),
-        new Light("spot", [-30, 170, 0], [0, -1, 0], [1.0, 0.5, 0.0], 1.0, Math.PI / 6, 0.0005)
+        new Light("spot", [150, 350, -450], [0, -1, 0], [1.0, 0.5, 0.0], 1.0, Math.PI / 6, 0.0005),
+        new Light("spot", [290, 350, -470], [0, -1, 0], [1.0, 0.5, 0.0], 1.0, Math.PI / 6, 0.0005)
     ];
     return { headlight, pointLight, otherSpotLights, allLights: [headlight, pointLight, ...otherSpotLights] };
 }
@@ -89,7 +207,7 @@ function checkCollisions(object, allObjects) {
     return false;
 }
 
-function updateShipMovement(ship, keys, shipTilt, allObjects) {
+function updateShipMovement(ship, keys, shipTilt, allObjects, rocks) {
     const front = ship.model.getFront();
     const right = ship.model.getRight();
     let tiltChanged = false;
@@ -110,6 +228,10 @@ function updateShipMovement(ship, keys, shipTilt, allObjects) {
 
     const oldPosition = vec3.clone(ship.model.position);
     ship.model.move(newPosition);
+    if (checkCollisions(ship, rocks)) {
+        console.log("END")
+        ship.model.move(vec3.fromValues(-100, 150, 300));
+    }
     if (checkCollisions(ship, allObjects)) {
         ship.model.move(oldPosition);
     }
@@ -189,7 +311,7 @@ async function scene2() {
     const gl = initWebGL(canvas);
     const shaderProgram = await createProgram(gl);
     const camera = initCamera(gl);
-    const { moon, ship, allObjects, rock1, rock2 } = await initSceneObjects(gl);
+    const { mars, ship, allObjects, rocks } = await initSceneObjects(gl);
     const { headlight, pointLight, otherSpotLights, allLights } = initLights();
 
     let yaw = Math.PI;
@@ -213,6 +335,8 @@ async function scene2() {
         updateShipOrientation(ship, yaw, pitch);
     };
 
+    updateOrientation(0, -0.4)
+
     const updateTilt = (tiltDelta) => {
         shipTilt += tiltDelta;
         lastTiltTime = performance.now();
@@ -231,7 +355,7 @@ async function scene2() {
         gl.useProgram(shaderProgram.program);
 
         const currentTime = performance.now();
-        const { shipTilt: newTilt, tiltChanged } = updateShipMovement(ship, keys, shipTilt, allObjects);
+        const { shipTilt: newTilt, tiltChanged } = updateShipMovement(ship, keys, shipTilt, allObjects, rocks);
         shipTilt = newTilt;
         if (tiltChanged) lastTiltTime = currentTime;
         shipTilt = applyTilt(ship, shipTilt, currentTime, lastTiltTime, keys);
@@ -244,23 +368,18 @@ async function scene2() {
             return lightingState.otherSpots;
         });
 
-        moon.model.rotate(vec3.fromValues(0, 1, 0), 0.00005);
-
-        let rock1Pos = vec3.clone(rock1.model.position);
-        vec3.scaleAndAdd(rock1Pos, rock1Pos, vec3.fromValues(1, 0.5, -0.2), 0.05);
-        rock1.model.move(rock1Pos);
-        rock1.model.rotate(vec3.fromValues(0, 1, 1.5), 0.001);
-
-        let rock2Pos = vec3.clone(rock2.model.position);
-        vec3.scaleAndAdd(rock2Pos, rock2Pos, vec3.fromValues(-0.5, 0.3, -0.1), 0.05);
-        rock2.model.move(rock2Pos);
-        rock2.model.rotate(vec3.fromValues(0.2, 1, 0), 0.001);
+        rocks.forEach(rock => {
+            let rockPos = vec3.clone(rock.model.position)
+            vec3.scaleAndAdd(rockPos, rockPos, vec3.fromValues(1, 0.5, -0.2), 0.05)
+            rock.model.move(rockPos)
+            rock.model.rotate(vec3.fromValues(0, 1, 1.5), 0.001)
+        });
 
         allObjects.forEach((m) => 
             m.render(shaderProgram, camera, activeLights, lightingState.ambient ? undefined : 0.0)
         )
         //console.log(checkCollisions(ship, allObjects));
-        // console.log(ship.model.boundingBox);
+        //console.log(ship.model.boundingBox);
         requestAnimationFrame(animate);
     }
 

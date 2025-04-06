@@ -1,7 +1,7 @@
 import { scene1 } from './scene1.js'
 import { scene2 } from './scene2.js'
 
-let currentScene = 'scene2';
+let currentScene = 'scene1';
 let activeScene = null;
 
 async function switchScene(newScene) {
