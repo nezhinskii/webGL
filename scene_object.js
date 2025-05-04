@@ -4,16 +4,22 @@ import { Material } from './material.js';
 import { mat3, mat4 } from './lib/gl-matrix-min.js';
 
 class SceneObject {
-    constructor(gl, objPath, texturePath, bumpPath) {
+    constructor(gl, objPath, textureSource, bumpPath, model = null) {
         this.gl = gl;
-        this.material = new Material(gl, texturePath, bumpPath);
-        this.model = null;
+        this.material = textureSource ? new Material(gl, textureSource, bumpPath) : null;
+        this.model = model;
         this.lights = [];
     }
 
-    static async create(gl, objPath, texturePath, bumpPath = null) {
-        const obj = new SceneObject(gl, objPath, texturePath, bumpPath);
+    static async create(gl, objPath, textureSource, bumpPath = null) {
+        const obj = new SceneObject(gl, objPath, textureSource, bumpPath);
         await obj.loadOBJ(objPath); 
+        return obj;
+    }
+
+    static createWithModel(gl, model) {
+        const obj = new SceneObject(gl, null, null, null, model);
+        obj.material = model.material;
         return obj;
     }
 

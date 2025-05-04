@@ -1,17 +1,25 @@
 import { mat4, vec3 } from './lib/gl-matrix-min.js';
 
 class Transforms3D {
-    constructor() {
+    constructor(boundingBox = null) {
         this.position = vec3.fromValues(0, 0, 0);
         this.scale = vec3.fromValues(1, 1, 1);
+        this.initialRotationMatrix = mat4.create();
         this.rotationMatrix = mat4.create();
-
+        this.tiltMatrix = mat4.create();
         this.matrix = mat4.create();
+        if(boundingBox) this.boundingBox = boundingBox;
+        this.updateMatrix();
+    }
+
+    setInitialRotation(axis, angle) {
+        mat4.fromRotation(this.initialRotationMatrix, angle, axis);
         this.updateMatrix();
     }
 
     move(vector) {
         this.position = vector;
+        if(this.boundingBox) this.boundingBox.move(vector);
         this.updateMatrix();
     }
 
@@ -23,19 +31,48 @@ class Transforms3D {
     }
 
     setScale(scale) {
-        vec3.set(this.scale, scale.x, scale.y, scale.z);
+        this.scale = scale;
+        if(this.boundingBox) this.boundingBox.setScale(scale);
+        this.updateMatrix();
+    }
+
+    setTilt(tiltAngle) {
+        mat4.fromRotation(this.tiltMatrix, tiltAngle, vec3.fromValues(0, 0, 11));
         this.updateMatrix();
     }
 
     updateMatrix() {
         mat4.identity(this.matrix);
-        mat4.scale(this.matrix, this.matrix, this.scale);
-        mat4.multiply(this.matrix, this.matrix, this.rotationMatrix);
         mat4.translate(this.matrix, this.matrix, this.position);
+        mat4.multiply(this.matrix, this.matrix, this.initialRotationMatrix);
+        mat4.multiply(this.matrix, this.matrix, this.rotationMatrix);
+        mat4.multiply(this.matrix, this.matrix, this.tiltMatrix);
+        mat4.scale(this.matrix, this.matrix, this.scale);
     }
 
     getMatrix() {
         return this.matrix;
+    }
+
+    getFront() {
+        const front = vec3.fromValues(0, 0, -1);
+        vec3.transformMat4(front, front, this.rotationMatrix);
+        vec3.normalize(front, front);
+        return front;
+    }
+
+    getRight() {
+        const right = vec3.fromValues(1, 0, 0);
+        vec3.transformMat4(right, right, this.rotationMatrix);
+        vec3.normalize(right, right);
+        return right;
+    }
+
+    getUp() {
+        const up = vec3.fromValues(0, 1, 0);
+        vec3.transformMat4(up, up, this.rotationMatrix);
+        vec3.normalize(up, up);
+        return up;
     }
 }
 

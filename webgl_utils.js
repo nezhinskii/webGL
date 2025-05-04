@@ -51,6 +51,8 @@ async function createProgram(gl){
             texCoordLocation: gl.getAttribLocation(shaderProgram, 'aTexCoord'),
         },
         uniformLocations: {
+            time: gl.getUniformLocation(shaderProgram, 'uTime'),
+            textureMode: gl.getUniformLocation(shaderProgram, 'uTextureMode'),
             projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
             modelMatrix: gl.getUniformLocation(shaderProgram, 'uModelMatrix'),
             viewMatrix: gl.getUniformLocation(shaderProgram, 'uViewMatrix'),

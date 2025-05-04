@@ -15,6 +15,8 @@ uniform vec3 uCameraPosition;
 uniform float uAmbientStrength;
 uniform float uSpecularStrength;
 uniform float uShininess;
+uniform float uTime;
+uniform int uTextureMode;
 
 #define MAX_LIGHTS 10
 uniform int uNumLights;
@@ -28,8 +30,47 @@ uniform float uLightAttenuations[MAX_LIGHTS];
 
 out vec4 fragColor;
 
+
+float random(vec2 st) {
+    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
+float noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+    vec2 u = f*f*(3.0-2.0*f);
+    return mix(mix(random(i + vec2(0.0,0.0)), random(i + vec2(1.0,0.0)), u.x),
+               mix(random(i + vec2(0.0,1.0)), random(i + vec2(1.0,1.0)), u.x), u.y);
+}
+
+mat2 rotate2d(float angle) {
+    return mat2(cos(angle),-sin(angle), sin(angle),cos(angle));
+}
+
+float lines(vec2 pos, float b) {
+    float scale = 10.0;
+    pos *= scale;
+    return smoothstep(0.0, .5+b*.5, abs((sin(pos.x*3.1415)+b*2.0))*.5);
+}
+
+
 void main() {
-    vec4 textureColor = texture(uTexture, vTexCoord);
+    vec4 textureColor;
+    if (uTextureMode == 1) {
+        vec2 centeredUV = vTexCoord - vec2(0.5);
+        float r = length(centeredUV);
+        float phi = atan(centeredUV.y, centeredUV.x);
+        phi += 15.0 * r * sin(uTime * 0.0005);
+        vec2 newUV = vec2(cos(phi), sin(phi)) * r + vec2(0.5);
+        textureColor = texture(uTexture, newUV);
+    } else if (uTextureMode == 2) {
+        vec2 pos = vTexCoord.yx * vec2(6., 1.7);
+        pos = rotate2d(noise(pos)) * pos;
+        float pattern = lines(pos, 0.5);
+        textureColor = vec4(mix(vec3(0.47, 0.33, 0.2), vec3(0.22, 0.15, 0), pattern), 1.0);
+    } else {
+        textureColor = texture(uTexture, vTexCoord);
+    }
 
     vec3 normal = normalize(vNormal);
     vec3 newNormal = normal;
@@ -63,36 +104,10 @@ void main() {
         if (uLightTypes[i] == 1) {
             float theta = dot(lightDir, normalize(-uLightDirections[i]));
             float cutoff = cos(uLightCutoffAngles[i]);
-            if (theta > cutoff) {
-                lightFactor = 1.0;
-            } else {
-                lightFactor = 0.0;
-            }
+            float innerCutoff = cutoff * 0.99;
+            float outerCutoff = cutoff * 1.01;
+            lightFactor = smoothstep(innerCutoff, outerCutoff, theta);
         }
-
-        // vec3 uLightPosition = vec3(100.0, 100.0, 200.0);
-        // vec3 uLightColor = vec3(1.0, 1.0, 1.0);
-        // vec3 uCameraPosition = vec3(0.0, 0.0, 200.0);
-        // float uAmbientStrength = 0.3;
-        // float uSpecularStrength = 0.5;
-        // float uShininess = 32.0;
-
-        // vec3 viewDir = normalize(uCameraPosition - vPosition);
-
-        // // vec3 ambient = uAmbientStrength * uLightColor;
-        // // float diff = max(dot(newNormal, lightDir), 0.0);
-        // // vec3 diffuse = diff * uLightColor;
-        // float diff = max(dot(newNormal, lightDir), 0.0);
-        // vec3 diffuseContrib = diff * uLightColor;
-        // // vec3 reflectDir = normalize(reflect(-lightDir, newNormal));
-        // // float spec = pow(max(dot(viewDir, reflectDir), 0.0), uShininess);
-        // // vec3 specular = uSpecularStrength * spec * uLightColor;
-        // vec3 reflectDir = normalize(reflect(-lightDir, newNormal));
-        // float spec = pow(max(dot(viewDir, reflectDir), 0.0), uShininess);
-        // vec3 specularContrib = uSpecularStrength * spec * uLightColor;
-
-
-
 
         float diff = max(dot(newNormal, lightDir), 0.0);
         vec3 diffuseContrib = diff * uLightColors[i] * uLightIntensities[i] * attenuation * lightFactor;
@@ -103,10 +118,6 @@ void main() {
 
         diffuse += diffuseContrib;
         specular += specularContrib;
-
-        // vec3 result = (ambient + diffuse) * textureColor.rgb + specular;
-        // result = vec3(attenuation, lightFactor, lightFactor);
-        // fragColor = vec4(result, textureColor.a);
     }
 
     vec3 result = (ambient + diffuse) * textureColor.rgb + specular;
